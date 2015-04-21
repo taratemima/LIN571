@@ -1,0 +1,104 @@
+#!/usr/bin/perl
+
+use warnings;
+use diagnostics;
+use strict;
+
+
+sub BuildRules{
+my @rules;
+
+
+open(RULES, 'grammar.txt') || die "could not find the grammar \n";
+while(<RULES>){
+	@rules = split(/\n/, $_);
+	}
+
+close RULES;
+return @rules;
+}
+
+
+#sub BuildSentences{
+#my @sentences;
+
+#open(SENT, 'sentences.txt') || die "could not find the text \n";
+
+#while(<SENT>){
+#	@sentences = split(/\n, $_);
+#	}
+
+#close SENT;
+#return @sentences;
+#}
+
+
+#sub BuildTable{
+#my @table;
+#my $sentence = $_[0];
+
+#my $i;
+#my $full = length($sentence);
+#my @round = split(/\s+/, $sentence);
+#for $i (0 .. $full){
+#	$table[$i] = [ @round ];
+#		}
+
+#for (my $j = 1; $j < ($full + 1); $j++){
+#	$table[0][$j] = $round[$j - 1];
+#	} 
+
+#}
+
+#sub UpdateGrammarHash{
+#	my %array = $_[0];
+#	my $A = $_[1];
+#	my $B = $_[2];
+
+#	if(defined($array{$A})){
+#	$oldValue = $array{$A};
+#	$newValue = "$oldValue|$B";
+#	$array{$A} = $newValue;
+#		}
+#		elsif(!(defined($array{$A}))){
+#			$array{$A} = $B;
+#	}
+
+#return %array;
+
+#}
+
+#sub MakingNewRules{
+#my $X = $_[2];
+#my $A = $_[0];
+#my $B = $_[1];
+
+#my @test = split(/\s+/, $B);
+#my $measure = scalar(@test);
+
+#if($measure > 2){
+#	my $new_B = pop(@test);
+#	my @XProduct = @test;
+#	$B = "($new_B $X)";
+#	my $first_rule = join(/->/, $A, $B);
+#	my $C = join(/ /, @test);
+#	my $second_rule = join(/->/, $X, $C);
+#		}
+
+#	elsif($measure <= 2){
+#	my $first_rule = join(/->/, $A, $B);
+#	my $second_rule = "";
+#	}
+#return $first_rule;
+#return $second_rule;
+#}
+
+
+#What to do with $rules[0]
+#Types to account for:
+#A -> b
+#A -> B
+#A -> B C
+#A -> b C
+#A -> B c
+#A -> B C D

@@ -1,0 +1,96 @@
+John eats .
+A student eats .
+John eats a sandwich .
+John drinks a soda or eats a sandwich .
+John or Mary eats .
+All students eat or drink .
+A student writes an essay or eats .
+Every student eats a sandwich or drinks a soda .
+John eats every sandwich .
+John eats every sandwich or bagel .
+Nobody eats a bagel .
+Jack does not eat or drink .
+A person does not eat .
+No student eats a bagel .
+John eats in Seattle .
+
+They capture infected cells and display fragments of the pathogen .
+Systemic infections overstimulate dendritic cells .
+Dr Jose Villadangos is a researcher of the immune system .
+The immune system shuts down .
+
+The dogs bark .
+The dog barks .
+Dogs bark .
+
+*the dog bark .
+*the dogs barks .
+*dog bark .
+*the dogs bark the cats .
+
+[sem=?dt + ?np-> exists.?np]
+[sem= 'no' + ?np->-?np]
+[sem=?pdt + ?np-> all.?np]
+PDT[sem='']->'every' | 'Every' | 'all' | 'All'
+DT[sem='']-> 'a' | 'an' | 'A' | 'An' | 'the' | 'The'
+NN[sem='']->'student' | 'sandwich' | 'soda' | 'essay' | 'bagel' | 'body' | 'immunity' |
+'system' | 'mouse' |'response' | 'researcher'|'type'|'vaccine'| 'dog' |'pathogen' | 'person'
+
+NNS[sem='']->'students' | 'Scientists' | 'infections' | 'cells'|'dogs' |'fragments' | 'Dogs'
+| 'cats'
+VBP[NUM=?n, TENSE=pres, AGR=subj, SEM='', subcat=IV, PER=?p]-> 'eat' | 'drink' | 'bark'
+VBP[NUM=?n, TENSE=pres, AGR=subj, SEM='', subcat=TV, PER=?p]-> 'overstimulate' | 'eat' |
+'drink'| 'capture' | 'display'
+VBP[NUM=?n, TENSE=pres, AGR=subj, SEM='', subcat=DatV, PER=?p]-> 'eat' | 'drink' | 'bark' |
+'overstimulate | 'capture' | 'display'
+VBP[NUM=?n, TENSE=pres, AGR=subj, SEM='', subcat=SV, PER=?p]-> 'bark' | 'eat' | 'drink' |
+'overstimulate'
+VBZ[NUM=sg, TENSE=pres, AGR=subj, SEM='',subcat=IV, PER=3]->'eats' | 'drinks' | 'barks' |
+'writes'
+VBZ[NUM=sg, TENSE=pres, AGR=subj, SEM='',subcat=TV, PER=3]-> 'eats' | 'drinks' | 'writes' |
+'does'| 'shuts'
+VBZ[NUM=sg, TENSE=pres, AGR=subj, SEM='',subcat=DatV, PER=3]-> 'eats' | 'drinks' | 'barks' |
+'writes'| 'does' | 'shuts'
+VBZ[NUM=sg, TENSE=pres, AGR=subj, SEM='',subcat=SV, PER=3]-> 'eats' | 'drinks' | 'barks' |
+'writes'
+S[sem=?np + ?vp]-> NP[SEM=?np] VP[SEM=?vp] | S PUNC
+NP[sem=NN | NNS | PRP | NNP | exists.?np]-> NN[SEM=?np] | NNS[SEM=?np] | PRP[SEM=?np] |
+NNP[SEM=?np]| DT NN[sem=exists.?np] | DT NNS[sem=exists.?np]
+VP[sem=VBZ | VBP]-> VBZ[SEM=?vp] | VBP [sem=?vp]
+PUNC[sem='']->'.'
+NNP[sem='']-> 'John' | 'Mary' | 'Jack' | 'Dr Jose Villadangos' | 'Seattle'
+[sem='Nobody'->-'person']
+
+to do: or, and, no, does not, pronouns, prepositions, type-raising
+
+NP VBZ exists.NP PUNC
+NP VBZ exists.NP or VBZ exists.NP PUNC
+NNP VBZ PDT NN PUNC
+
+PDT NNS VBP or VBP PUNC
+exists.NP VBZ exists.NP or VBZ PUNC
+PDT NN VBZ exists.NP or VBZ exists.NP PUNC
+NNP VBZ PDT NN or NN PUNC
+-NP VBZ exists.NP PUNC
+exists.NP does not VBP PUNC
+No NN VBZ DT NN PUNC
+Systemic NNS VBP dendritic NNS PUNC
+NNP is exists.NP of DT immune NN PUNC
+DT immune NN VBZ down PUNC
+NNP or NNP VBZ PUNC
+NNP does not VBP or VBP PUNC
+NNP VBZ in NNP PUNC
+They VBP infected NNS and VBP NNS of DT NN PUNC
+
+accepted
+exists.NP VP PUNC
+exists.NP VP PUNC
+exists.NP VP PUNC
+NP VP PUNC
+NP VP PUNC
+
+rejected
+*exists.NP VP PUNC
+*exists.NP VP PUNC
+*exists.NP VP exists.NP PUNC
+

@@ -1,0 +1,515 @@
+import nltk
+from nltk.corpus import wordnet as wn
+
+#Get two words from standard input 
+#wn.synsets('motorcar')
+#wn.synset('car.n.01').lemma_names
+#>>> for synset in wn.synsets('car'):
+#...     print synset.lemma_names
+
+
+#Find same terms in lemmas for both words
+#If you cannot find these terms, get the wordnet hierarchies
+
+#>>> motorcar.hypernyms()
+#[Synset('motor_vehicle.n.01')]
+#>>> paths = motorcar.hypernym_paths()
+#>>> len(paths)
+#2
+#>>> [synset.name for synset in paths[0]]
+#['entity.n.01', 'physical_entity.n.01', 'object.n.01', 'whole.n.02', 'artifact.n.01',
+#'instrumentality.n.03', 'container.n.01', 'wheeled_vehicle.n.01',
+#'self-propelled_vehicle.n.01', 'motor_vehicle.n.01', 'car.n.01']
+#>>> [synset.name for synset in paths[1]]
+#['entity.n.01', 'physical_entity.n.01', 'object.n.01', 'whole.n.02', 'artifact.n.01',
+#'instrumentality.n.03', 'conveyance.n.03', 'vehicle.n.01', 'wheeled_vehicle.n.01',
+#'self-propelled_vehicle.n.01', 'motor_vehicle.n.01', 'car.n.01']
+
+#Find similiar hypernyms, print earliest similiar hypernym
+
+#result = []
+
+wordnet_ic Information Content: Load an information content file from the wordnet_ic corpus.
+  	
+
+>>> from nltk.corpus import wordnet_ic
+>>> brown_ic = wordnet_ic.ic('ic-brown.dat')
+>>> semcor_ic = wordnet_ic.ic('ic-semcor.dat')
+
+>>> wn.synset('dog.n.01')
+Synset('dog.n.01')
+>>> wn.synset('dog.n.01').definition
+'a member of the genus Canis (probably descended from the common wolf) that has been domesticated by man since prehistoric times; occurs in many breeds'
+>>> wn.synset('dog.n.01').examples
+['the dog barked all night']
+>>> wn.synset('dog.n.01').lemmas
+[Lemma('dog.n.01.dog'), Lemma('dog.n.01.domestic_dog'), Lemma('dog.n.01.Canis_familiaris')]
+>>> [lemma.name for lemma in wn.synset('dog.n.01').lemmas]
+['dog', 'domestic_dog', 'Canis_familiaris']
+>>> wn.lemma('dog.n.01.dog').synset
+Synset('dog.n.01')
+
+6   Access to all Synsets
+
+Iterate over all the noun synsets:
+  	
+
+>>> for synset in list(wn.all_synsets('n'))[:10]:
+...     print synset
+...
+Synset('entity.n.01')
+Synset('physical_entity.n.01')
+Synset('abstraction.n.06')
+Synset('thing.n.12')
+Synset('object.n.01')
+Synset('whole.n.02')
+Synset('congener.n.03')
+Synset('living_thing.n.01')
+Synset('organism.n.01')
+Synset('benthos.n.02')
+
+Get all synsets for this word, possibly restricted by POS:
+  	
+
+>>> wn.synsets('dog') 
+[Synset('dog.n.01'), Synset('frump.n.01'), Synset('dog.n.03'), Synset('cad.n.01'), ...]
+>>> wn.synsets('dog', pos='v')
+[Synset('chase.v.01')]
+
+Walk through the noun synsets looking at their hypernyms:
+  	
+
+>>> from itertools import islice
+>>> for synset in islice(wn.all_synsets('n'), 5):
+...     print synset, synset.hypernyms()
+...
+Synset('entity.n.01') []
+Synset('physical_entity.n.01') [Synset('entity.n.01')]
+Synset('abstraction.n.06') [Synset('entity.n.01')]
+Synset('thing.n.12') [Synset('physical_entity.n.01')]
+Synset('object.n.01') [Synset('physical_entity.n.01')]
+
+#    def lowest_common_hypernyms(self, other):
+#        """Get the lowest synset that both synsets have as a hypernym."""
+#        self_synsets = set(self_synset
+#                           for self_synsets in self._iter_hypernym_lists()
+#                         for self_synset in self_synsets)
+#      result = []
+#      for other_synsets in other._iter_hypernym_lists():
+#          for other_synset in other_synsets:
+#              if other_synset in self_synsets:
+#                  result.append(other_synset)
+#          if result:
+#              break
+#      return result
+
+
+def res_similarity(synset1, synset2, datafile="", verbose=False):
+    """
+    Resnik Similarity:
+    Return a score denoting how similar two word senses are, based on the
+    Information Content (IC) of the Least Common Subsumer (most specific
+    ancestor node). Note that at this time the scores given do _not_
+    always agree with those given by Pedersen's Perl implementation of
+    Wordnet Similarity, although they are mostly very similar.
+
+    The required IC values are precomputed and stored in a file, the name
+    of which should be passed as the 'datafile' argument. For more
+    information on how they are calculated, check brown_ic.py.
+
+    @type  synset2: L{Sense}
+    @param synset2: The L{Sense} that this L{Sense} is being compared to.
+    @return: A float score denoting the similarity of the two L{Sense}s.
+        Synsets whose LCS is the root node of the taxonomy will have a
+        score of 0 (e.g. N['dog'][0] and N['table'][0]). If no path exists
+        between the two synsets a score of -1 is returned.
+    """
+
+    _check_datafile(datafile)
+
+    # TODO: Once this data has been loaded for the first time preserve it
+    # in memory in some way to prevent unnecessary recomputation.
+    (noun_freqs, verb_freqs) = _load_ic_data(datafile)
+
+    if synset1.pos is NOUN:
+        (lcs, lcs_ic) = _lcs_by_content(synset1, synset2, noun_freqs)
+
+    elif synset1.pos is VERB:
+        (lcs, lcs_ic) = _lcs_by_content(synset1, synset2, verb_freqs)
+
+    return lcs_ic
+
+def _lcs_by_content(synset1, synset2, freqs):
+    """
+    Get the least common subsumer of the two input synsets, where the least
+    common subsumer is defined as the ancestor synset common to both input
+    synsets which has the highest information content (IC) value. The IC
+    value is calculated by extracting the probability of an ancestor synset
+    from a precomputed set.
+
+    @type  synset1: L{Synset}
+    @param synset1: First input synset.
+
+    @type  synset2: L{Synset}
+    @param synset2: Second input synset.
+
+    @return: The ancestor synset common to both input synsets which is also
+        the LCS.
+    """
+    subsumer = None
+    subsumer_ic = -1
+
+    subsumers = synset1.hypernyms(True) & synset2.hypernyms(True)
+
+    # For each candidate, calculate its IC value. Keep track of the candidate
+    # with the highest score.
+    for candidate in subsumers:
+        ic = candidate.getIC(freqs)
+        if (subsumer == None and ic > 0) or ic > subsumer_ic:
+            subsumer = candidate
+            subsumer_ic = ic
+    return (subsumer, subsumer_ic)
+
+
+hypernyms1 = [synset1] + list(synset1.closure(HYPERNYM))
+    hypernyms2 = [synset2] + list(synset2.closure(HYPERNYM))
+    return [s for s in hypernyms1 if s in hypernyms2]
+
+
+>>> from nltk.corpus import stopwords
+>>> stopwords.words('english')
+
+
+Algorithm. Given W = {w[1], . . . ,w[n]}, a set of nouns:
+for i and j = 1 to n, with i ¡ j
+{
+v[i, j] = sim(w[i], w[j])
+c[i, j] = the most informative subsumer for w[i] and w[j]
+for k = 1 to num senses(w[i])
+if c[i, j] is an ancestor of sense[i, k]
+increment support[i, k] by v[i, j]
+for k’ = 1 to num senses(w[j])
+if c[i, j] is an ancestor of sense[j, k’]
+increment support[j, k’] by v[i, j]
+increment normalization[i] by v[i, j]
+increment normalization[j] by v[i, j]
+}
+for i = 1 to n
+for k = 1 to num senses(w[i])
+{
+if (normalization[i] ¿ 0.0)
+phi[i, k] = support[i, k] / normalization[i]
+else
+phi[i, k] = 1 / num senses(w[i])
+}
+
+
+sim(w[i], w[j]) = frequency of synset in both words over total number of nouns observed
+
+This algorithm considers the words in W pairwise, avoiding the tractability problems in considering all
+possible combinations of senses for the group (O(mn) if each word hadmsenses). For each pair considered,
+the most informative subsumer is identified, and this pair is only considered as supporting evidence for
+those senses that are descendants of that concept. Notice that by equation (1), support[i,k] is a sum
+of log probabilities, and therefore preferring senses with high support is equivalent to optimizing a product
+of probabilities
+
+The value assigned to that sense is then the proportion of support it did receive, out
+of the support possible. (The latter is kept track of by array normalization in the pseudocode.)
+
+foreach i in num_senses
+foreach k in phi
+print num_senses w[i]
+print phi[i, k]
+
+
+>>> from __future__ import division
+>>> import nltk, re, pprint
+
+s.find(t) 	index of first instance of string t inside s (-1 if not found)
+s.rfind(t) 	index of last instance of string t inside s (-1 if not found)
+s.index(t) 	like s.find(t) except it raises ValueError if not found
+s.rindex(t) 	like s.rfind(t) except it raises ValueError if not found
+s.join(text) 	combine the words of the text into a string using s as the glue
+s.split(t) 	split s into a list wherever a t is found (whitespace by default)
+s.splitlines() 	split s into a list of strings, one per line
+s.lower() 	a lowercased version of the string s
+s.upper() 	an uppercased version of the string s
+s.title() 	a titlecased version of the string s
+s.strip() 	a copy of s without leading or trailing whitespace
+s.replace(t, u) 	replace instances of t with u inside s
+
+>>> silly = ['We', 'called', 'him', 'Tortoise', 'because', 'he', 'taught', 'us', '.']
+>>> ' '.join(silly)
+'We called him Tortoise because he taught us .'
+>>> ';'.join(silly)
+'We;called;him;Tortoise;because;he;taught;us;.'
+>>> ''.join(silly)
+'WecalledhimTortoisebecausehetaughtus.'
+
+hello = "This is a rather long string containing\n\
+several lines of text just as you would do in C.\n\
+    Note that whitespace at the beginning of the line is\
+ significant."
+
+>>> word = 'Help' + 'A'
+>>> word
+'HelpA'
+>>> '<' + word*5 + '>'
+'<HelpAHelpAHelpAHelpAHelpA>'
+
+>>> a = ['spam', 'eggs', 100, 1234]
+>>> a
+['spam', 'eggs', 100, 1234]
+
+>>> a[0]
+'spam'
+>>> a[3]
+1234
+>>> a[-2]
+100
+>>> a[1:-1]
+['eggs', 100]
+>>> a[:2] + ['bacon', 2*2]
+['spam', 'eggs', 'bacon', 4]
+>>> 3*a[:3] + ['Boo!']
+['spam', 'eggs', 100, 'spam', 'eggs', 100, 'spam', 'eggs', 100, 'Boo!']
+
+>>> a = ['a', 'b', 'c', 'd']
+>>> len(a)
+4
+
+>>> # Insert some:
+... a[1:1] = ['bletch', 'xyzzy']
+>>> a
+[123, 'bletch', 'xyzzy', 1234]
+
+log10(x)¶
+    Returns the base 10 logarithm of x.
+
+Type code 	C Type 	Python Type 	Minimum size in bytes
+'c' 	char 	character 	1
+'b' 	signed char 	int 	1
+'B' 	unsigned char 	int 	1
+'u' 	Py_UNICODE 	Unicode character 	2 (see note)
+'h' 	signed short 	int 	2
+'H' 	unsigned short 	int 	2
+'i' 	signed int 	int 	2
+'I' 	unsigned int 	long 	2
+'l' 	signed long 	int 	4
+'L' 	unsigned long 	long 	4
+'f' 	float 	float 	4
+'d' 	double 	float 	8
+
+Note
+
+The 'u' typecode corresponds to Python’s unicode character. On narrow Unicode builds this is 2-bytes, on wide builds this is 4-bytes.
+
+The actual representation of values is determined by the machine architecture (strictly speaking, by the C implementation). The actual size can be accessed through the itemsize attribute. The values stored for 'L' and 'I' items will be represented as Python long integers when retrieved, because Python’s plain integer type cannot represent the full range of C’s unsigned (long) integers.
+
+The module defines the following type:
+
+class array.array(typecode[, initializer])¶
+
+    A new array whose items are restricted by typecode, and initialized from the optional initializer value, which must be a list, string, or iterable over elements of the appropriate type.
+
+    Changed in version 2.4: Formerly, only lists or strings were accepted.
+
+    If given a list or string, the initializer is passed to the new array’s fromlist(), fromstring(), or fromunicode() method (see below) to add initial items to the array. Otherwise, the iterable initializer is passed to the extend() method.
+
+array.ArrayType¶
+    Obsolete alias for array.
+
+Array objects support the ordinary sequence operations of indexing, slicing, concatenation, and multiplication. When using slice assignment, the assigned value must be an array object with the same type code; in all other cases, TypeError is raised. Array objects also implement the buffer interface, and may be used wherever buffer objects are supported.
+
+The following data items and methods are also supported:
+
+array.typecode¶
+    The typecode character used to create the array.
+
+array.itemsize¶
+    The length in bytes of one array item in the internal representation.
+
+array.append(x)¶
+    Append a new item with value x to the end of the array.
+
+array.buffer_info()¶
+
+    Return a tuple (address, length) giving the current memory address and the length in elements of the buffer used to hold array’s contents. The size of the memory buffer in bytes can be computed as array.buffer_info()[1] * array.itemsize. This is occasionally useful when working with low-level (and inherently unsafe) I/O interfaces that require memory addresses, such as certain ioctl() operations. The returned numbers are valid as long as the array exists and no length-changing operations are applied to it.
+
+    Note
+
+    When using array objects from code written in C or C++ (the only way to effectively make use of this information), it makes more sense to use the buffer interface supported by array objects. This method is maintained for backward compatibility and should be avoided in new code. The buffer interface is documented in Buffers and Memoryview Objects.
+
+array.byteswap()¶
+    “Byteswap” all items of the array. This is only supported for values which are 1, 2, 4, or 8 bytes in size; for other types of values, RuntimeError is raised. It is useful when reading data from a file written on a machine with a different byte order.
+
+array.count(x)¶
+    Return the number of occurrences of x in the array.
+
+array.extend(iterable)¶
+
+    Append items from iterable to the end of the array. If iterable is another array, it must have exactly the same type code; if not, TypeError will be raised. If iterable is not an array, it must be iterable and its elements must be the right type to be appended to the array.
+
+    Changed in version 2.4: Formerly, the argument could only be another array.
+
+array.fromfile(f, n)¶
+    Read n items (as machine values) from the file object f and append them to the end of the array. If less than n items are available, EOFError is raised, but the items that were available are still inserted into the array. f must be a real built-in file object; something else with a read() method won’t do.
+
+array.fromlist(list)¶
+    Append items from the list. This is equivalent to for x in list: a.append(x) except that if there is a type error, the array is unchanged.
+
+array.fromstring(s)¶
+    Appends items from the string, interpreting the string as an array of machine values (as if it had been read from a file using the fromfile() method).
+
+array.fromunicode(s)¶
+    Extends this array with data from the given unicode string. The array must be a type 'u' array; otherwise a ValueError is raised. Use array.fromstring(unicodestring.encode(enc)) to append Unicode data to an array of some other type.
+
+array.index(x)¶
+    Return the smallest i such that i is the index of the first occurrence of x in the array.
+
+array.insert(i, x)¶
+    Insert a new item with value x in the array before position i. Negative values are treated as being relative to the end of the array.
+
+array.pop([i])¶
+    Removes the item with the index i from the array and returns it. The optional argument defaults to -1, so that by default the last item is removed and returned.
+
+array.read(f, n)¶
+
+    Deprecated since version 1.5.1: Use the fromfile() method.
+
+    Read n items (as machine values) from the file object f and append them to the end of the array. If less than n items are available, EOFError is raised, but the items that were available are still inserted into the array. f must be a real built-in file object; something else with a read() method won’t do.
+
+array.remove(x)¶
+    Remove the first occurrence of x from the array.
+
+array.reverse()¶
+    Reverse the order of the items in the array.
+
+array.tofile(f)¶
+    Write all items (as machine values) to the file object f.
+
+array.tolist()¶
+    Convert the array to an ordinary list with the same items.
+
+array.tostring()¶
+    Convert the array to an array of machine values and return the string representation (the same sequence of bytes that would be written to a file by the tofile() method.)
+
+array.tounicode()¶
+    Convert the array to a unicode string. The array must be a type 'u' array; otherwise a ValueError is raised. Use array.tostring().decode(enc) to obtain a unicode string from an array of some other type.
+
+array.write(f)¶
+
+    Deprecated since version 1.5.1: Use the tofile() method.
+
+    Write all items (as machine values) to the file object f.
+
+When an array object is printed or converted to a string, it is represented as array(typecode, initializer). The initializer is omitted if the array is empty, otherwise it is a string if the typecode is 'c', otherwise it is a list of numbers. The string is guaranteed to be able to be converted back to an array with the same type and value using eval(), so long as the array() function has been imported using from array import array. Examples:
+
+raw_input([prompt])¶
+
+    If the prompt argument is present, it is written to standard output without a trailing newline. The function then reads a line from input, converts it to a string (stripping a trailing newline), and returns that. When EOF is read, EOFError is raised. Example:
+
+    >>> s = raw_input('--> ')
+    --> Monty Python's Flying Circus
+    >>> s
+    "Monty Python's Flying Circus"
+
+    If the readline module was loaded, then raw_input() will use it to provide elaborate line editing and history features.
+
+Another useful data type built into Python is the dictionary (see Mapping Types — dict). Dictionaries are sometimes found in other languages as “associative memories” or “associative arrays”. Unlike sequences, which are indexed by a range of numbers, dictionaries are indexed by keys, which can be any immutable type; strings and numbers can always be keys. Tuples can be used as keys if they contain only strings, numbers, or tuples; if a tuple contains any mutable object either directly or indirectly, it cannot be used as a key. You can’t use lists as keys, since lists can be modified in place using index assignments, slice assignments, or methods like append() and extend().
+
+It is best to think of a dictionary as an unordered set of key: value pairs, with the requirement that the keys are unique (within one dictionary). A pair of braces creates an empty dictionary: {}. Placing a comma-separated list of key:value pairs within the braces adds initial key:value pairs to the dictionary; this is also the way dictionaries are written on output.
+
+The main operations on a dictionary are storing a value with some key and extracting the value given the key. It is also possible to delete a key:value pair with del. If you store using a key that is already in use, the old value associated with that key is forgotten. It is an error to extract a value using a non-existent key.
+
+The keys() method of a dictionary object returns a list of all the keys used in the dictionary, in arbitrary order (if you want it sorted, just apply the sorted() function to it). To check whether a single key is in the dictionary, use the in keyword.
+
+Here is a small example using a dictionary:
+
+>>> tel = {'jack': 4098, 'sape': 4139}
+>>> tel['guido'] = 4127
+>>> tel
+{'sape': 4139, 'guido': 4127, 'jack': 4098}
+>>> tel['jack']
+4098
+>>> del tel['sape']
+>>> tel['irv'] = 4127
+>>> tel
+{'guido': 4127, 'irv': 4127, 'jack': 4098}
+>>> tel.keys()
+['guido', 'irv', 'jack']
+>>> 'guido' in tel
+True
+
+The dict() constructor builds dictionaries directly from lists of key-value pairs stored as tuples. When the pairs form a pattern, list comprehensions can compactly specify the key-value list.
+
+>>> dict([('sape', 4139), ('guido', 4127), ('jack', 4098)])
+{'sape': 4139, 'jack': 4098, 'guido': 4127}
+>>> dict([(x, x**2) for x in (2, 4, 6)])     # use a list comprehension
+{2: 4, 4: 16, 6: 36}
+
+Later in the tutorial, we will learn about Generator Expressions which are even better suited for the task of supplying key-values pairs to the dict() constructor.
+
+When the keys are simple strings, it is sometimes easier to specify pairs using keyword arguments:
+
+>>> dict(sape=4139, guido=4127, jack=4098)
+{'sape': 4139, 'jack': 4098, 'guido': 4127}
+
+When looping through dictionaries, the key and corresponding value can be retrieved at the same time using the iteritems() method.
+
+>>> knights = {'gallahad': 'the pure', 'robin': 'the brave'}
+>>> for k, v in knights.iteritems():
+...     print k, v
+...
+gallahad the pure
+robin the brave
+
+When looping through a sequence, the position index and corresponding value can be retrieved at the same time using the enumerate() function.
+
+>>> for i, v in enumerate(['tic', 'tac', 'toe']):
+...     print i, v
+...
+0 tic
+1 tac
+2 toe
+
+To loop over two or more sequences at the same time, the entries can be paired with the zip() function.
+
+>>> questions = ['name', 'quest', 'favorite color']
+>>> answers = ['lancelot', 'the holy grail', 'blue']
+>>> for q, a in zip(questions, answers):
+...     print 'What is your {0}?  It is {1}.'.format(q, a)
+...
+What is your name?  It is lancelot.
+What is your quest?  It is the holy grail.
+What is your favorite color?  It is blue.
+
+To loop over a sequence in reverse, first specify the sequence in a forward direction and then call the reversed() function.
+
+>>> for i in reversed(xrange(1,10,2)):
+...     print i
+...
+9
+7
+5
+3
+1
+
+To loop over a sequence in sorted order, use the sorted() function which returns a new sorted list while leaving the source unaltered.
+
+>>> basket = ['apple', 'orange', 'apple', 'pear', 'orange', 'banana']
+>>> for f in sorted(set(basket)):
+...     print f
+...
+apple
+banana
+orange
+pear
+
+Note that if you are using nltk at all, you can get information content values (- log P(c))
+directly with the information_content method, as in:
+
+wnic = nltk.corpus.wordnet_ic.ic('ic-brown-resnik-add1.dat')
+for s in nltk.corpus.wordnet.synsets('dog'):
+...     print nltk.corpus.reader.wordnet.information_content(s,wnic)
+

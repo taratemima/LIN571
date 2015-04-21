@@ -1,0 +1,72 @@
+1. Begin at the noun phrase (NP) node immediately dominating the pronoun.
+2. Go up the tree to the first NP or sentence (S) node encountered. Call this node X, and call the path used to reach it p.
+	3. Traverse all branches below node X to the left of path p in a left-toright, breadth-first fashion. Propose as the antecedent 		any NP node that is encountered which has an NP or S node between it and X.
+4. If node X is the highest S node in the sentence, traverse the surface parse trees of previous sentences in the text in order of recency, the most recent first; each tree is traversed in a left-to-right, breadth-first manner, and when an NP node is encountered, it is proposed as antecedent. 
+	If X is not the highest S node in the sentence, continue to step 5.
+5. From node X, go up the tree to the first NP or S node encountered. Call this new node X, and call the path traversed to reach it p.
+6. If X is an NP node and if the path p to X did not pass through the Nominal
+node that X immediately dominates, propose X as the antecedent.
+	7. Traverse all branches below node X to the left of path p in a left-toright, breadth-first manner. Propose any NP node 		encountered as the antecedent.
+8. If X is an S node, traverse all branches of node X to the right of path p in a left-to-right, breadth-first manner, but do not go below any NP or S node encountered. Propose any NP node encountered as the antecedent.
+	9. Go to Step 4.
+
+Martin and Jurafsky, pages 704-705
+
+S1: Scientists/NP rescued a mouse/NP immune system/NP.
+S2: They/PRP published the research/NP today/NP online.
+Left of PRP: S1
+Go to step 8, then step 4. Since the node before the pronoun is npt the highest node, we go on to step 5.
+Since I can break S1 down into NPs, it is not the final node. 
+
+P = prp -> s1
+P = prp -> NP NP NP
+The ‘first NP encountered’ would be the leftmost NP.
+P = prp -> x(‘scientists’)
+It passes a nominal phrase (‘mouse immune system’). However, ‘scientists’ do not dominate that NP, or at least it is different NP. 
+So, ‘scientists’ is the antecedent of ‘they’.
+
+S1: The/DT immune/JJ response/NP is/VP alerted/VP by/IN dendritic/JJ cells/NP.
+S2: They/PRP capture/VP infected/JJ cells/NP and/CC display/VP fragments/NP of/IN the/DT pathogen/NP.
+Left of PRP: S1
+P = PRP ->S1 (Step 8)
+P = PRP -> NP NP (Step 4 and 5)
+Using the assumptions from the last sentences, we get ‘immune response’. However, it is singular and ‘they’ are used as plural. Plus, it is the object of the S1 (‘is alerted by’).
+So, we move X 
+P = PRP -> x(‘dendritic cells’)
+It fits and it is the last NP before the pronoun. So, ‘dendritic cells’ are the antecedent.
+
+S1: Scientists/NP rescued a mouse/NP immune system/NP.
+S2: They/PRP restored/VP immunity/NP in/IN mice/NP with/IN a/DT weak/JJ immune/JJ system/NP.
+Left of PRP: S1
+P = PRP ->S1 (Step 8)
+P = PRP -> NP NP NP (Step 4 and 5)
+[mouse immune system] restored immunity . . . would not make sense
+So, ‘scientists’ are the antecedent.
+
+S1: Scientists/NP restored/VP immunity/NP in/IN mice/NP with/IN a/DT weak/JJ immune/JJ system/NP.
+S2: They/PRP injected/VP them/PRP with/IN a/DT live/JJ vaccine/NP.
+Here we have two pronouns
+P1 = PRP -> ‘They injected’
+P2 = PRP -> S1
+P = P1 -> P2->S1
+P = P1 -> P2 -> NP NP NP NP
+The first NP the P1 encounters is ‘weak immune system’. P2 would go to the next NP ‘Scientists’.
+While P1 is pretty good, ‘weak immune system’ is part of a prepositional phrase, so we go to the next NP up: ‘mice’
+P1 = PRP -> X(‘mice with a weak immune system’) 
+P2 = PRP -> X(‘Scientists’)
+
+S1: Scientists /NP restored/VP immunity/NP in/IN mice/NP with/IN a/DT weak/JJ immune/JJ system/NP.
+S2: They/PRP were/VP compromised/VP by/IN sepsis/NP.
+P = PRP -> S1
+P = PRP -> NP NP
+‘Scientists were compromised by sepsis’? After ‘restoring immunity’? I don’t think so. 
+‘Mice with a weak immune system were compromised by sepsis’—the sentence makes more sense.
+P = PRP -> X(‘mice with a weak immune system’)
+
+
+
+
+
+
+
+
